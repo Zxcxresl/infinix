@@ -1,5 +1,5 @@
 local success, errorMsg = pcall(function()
-    print("Iniciando Infinix Cheats v1.5...")
+    print("Iniciando Infinix Cheats v1.6...")
     local player = game.Players.LocalPlayer
     local playerGui = player:WaitForChild("PlayerGui", 10)
     local userInputService = game:GetService("UserInputService")
@@ -30,6 +30,22 @@ local success, errorMsg = pcall(function()
     soundOff.Parent = screenGui
     print("Sonidos On/Off creados")
 
+    -- *** Nuevo: Círculo de FOV ***
+    local fovCircle = Instance.new("Frame")
+    fovCircle.Size = UDim2.new(0, 100, 0, 100) -- Tamaño inicial (se ajustará con aimFOV)
+    fovCircle.Position = UDim2.new(0.5, 0, 0.5, 0)
+    fovCircle.AnchorPoint = Vector2.new(0.5, 0.5)
+    fovCircle.BackgroundColor3 = Color3.fromRGB(128, 128, 128) -- Plomo
+    fovCircle.BackgroundTransparency = 0.7
+    fovCircle.BorderSizePixel = 0
+    fovCircle.ZIndex = 1000
+    fovCircle.Visible = false
+    fovCircle.Parent = screenGui
+    local fovCircleCorner = Instance.new("UICorner")
+    fovCircleCorner.CornerRadius = UDim.new(0.5, 0) -- Circular
+    fovCircleCorner.Parent = fovCircle
+    print("FOV Circle creado")
+
     -- Mensaje temporal
     local function showTempMessage(text)
         local tempLabel = Instance.new("TextLabel")
@@ -41,7 +57,7 @@ local success, errorMsg = pcall(function()
         tempLabel.Font = Enum.Font.SourceSansBold
         tempLabel.TextSize = 16
         tempLabel.Text = text
-        tempLabel.ZIndex = 1000
+        tempLabel.ZIndex = 1001
         tempLabel.Parent = screenGui
         local corner = Instance.new("UICorner")
         corner.CornerRadius = UDim.new(0, 10)
@@ -193,7 +209,7 @@ local success, errorMsg = pcall(function()
     title.TextColor3 = Color3.fromRGB(255, 255, 255)
     title.Font = Enum.Font.SourceSansBold
     title.TextSize = 16
-    title.Text = "Infinix Cheats v1.5"
+    title.Text = "Infinix Cheats v1.6"
     title.ZIndex = 2
     title.Parent = frame
     print("Main Title creado")
@@ -267,8 +283,8 @@ local success, errorMsg = pcall(function()
     boostFrame.BackgroundTransparency = 0.5
     boostFrame.BorderSizePixel = 0
     boostFrame.ZIndex = 1000
-    boostFrame.Parent = screenGui
     boostFrame.Visible = false
+    boostFrame.Parent = screenGui
     local boostCorner = Instance.new("UICorner")
     boostCorner.CornerRadius = UDim.new(0, 10)
     boostCorner.Parent = boostFrame
@@ -609,7 +625,7 @@ local success, errorMsg = pcall(function()
         boostActive = false
     end)
 
-    -- Aimbot Logic
+    -- *** Aimbot Logic Mejorada ***
     local aimbotBasicEnabled = false
     local aimbotSmoothEnabled = false
     local aimbotSilentEnabled = false
@@ -617,6 +633,14 @@ local success, errorMsg = pcall(function()
     local aimPart = "Head"
     local smoothness = 0.5
     local aimbotConnection
+    local showFOVCircle = true -- Toggle para mostrar/ocultar círculo
+
+    -- Actualizar tamaño del círculo de FOV
+    local function updateFOVCircle()
+        fovCircle.Size = UDim2.new(0, aimFOV * 2, 0, aimFOV * 2)
+        fovCircle.Visible = showFOVCircle and (aimbotBasicEnabled or aimbotSmoothEnabled or aimbotSilentEnabled)
+        print("FOV Circle actualizado: " .. aimFOV * 2 .. "x" .. aimFOV * 2)
+    end
 
     local function toggleAimbot(mode)
         local prevBasic, prevSmooth, prevSilent = aimbotBasicEnabled, aimbotSmoothEnabled, aimbotSilentEnabled
@@ -628,6 +652,7 @@ local success, errorMsg = pcall(function()
             aimbotBasicEnabled and "Básico Activado" or aimbotSmoothEnabled and "Suave Activado" or aimbotSilentEnabled and "Silencioso Activado" or "Desactivado"))
         showTempMessage(string.format("Aimbot: %s", 
             aimbotBasicEnabled and "Básico Activado" or aimbotSmoothEnabled and "Suave Activado" or aimbotSilentEnabled and "Silencioso Activado" or "Desactivado"))
+        updateFOVCircle() -- Actualizar círculo al cambiar estado
         if isActive then
             if not (prevBasic or prevSmooth or prevSilent) then
                 soundOn:Play()
@@ -639,19 +664,39 @@ local success, errorMsg = pcall(function()
                     end
                     local camera = game.Workspace.CurrentCamera
                     local closestPlayer = nil
-                    local closestDistance = aimFOV
+                    local closestWorldDistance = math.huge
+                    local mousePos = userInputService:GetMouseLocation()
                     for _, plr in ipairs(game.Players:GetPlayers()) do
                         if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") and plr.Character:FindFirstChild(aimPart) then
-                            local screenPoint, onScreen = camera:WorldToScreenPoint(plr.Character[aimPart].Position)
-                            local distance = (Vector2.new(screenPoint.X, screenPoint.Y) - Vector2.new(userInputService:GetMouseLocation().X, userInputService:GetMouseLocation().Y)).Magnitude
-                            if onScreen and distance < closestDistance then
-                                closestPlayer = plr
-                                closestDistance = distance
+                            local targetPart = plr.Character[aimPart]
+                            local screenPoint, onScreen = camera:WorldToScreenPoint(targetPart.Position)
+                            local screenDistance = (Vector2.new(screenPoint.X, screenPoint.Y) - mousePos).Magnitude
+                            local worldDistance = (targetPart.Position - player.Character.HumanoidRootPart.Position).Magnitude
+                            -- Verificar si está dentro del círculo de FOV
+                            if onScreen and screenDistance <= aimFOV then
+                                -- Priorizar por distancia en el mundo 3D
+                                if worldDistance < closestWorldDistance then
+                                    -- Opcional: Verificar línea de visión con raycasting
+                                    local raycastParams = RaycastParams.new()
+                                    raycastParams.FilterDescendantsInstances = {player.Character}
+                                    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+                                    local rayResult = workspace:Raycast(
+                                        player.Character.HumanoidRootPart.Position,
+                                        (targetPart.Position - player.Character.HumanoidRootPart.Position).Unit * worldDistance,
+                                        raycastParams
+                                    )
+                                    if not rayResult or rayResult.Instance:IsDescendantOf(plr.Character) then
+                                        closestPlayer = plr
+                                        closestWorldDistance = worldDistance
+                                    end
+                                end
                             end
                         end
                     end
                     if closestPlayer then
                         local targetPos = closestPlayer.Character[aimPart].Position
+                        print("Aimbot apuntando a: " .. closestPlayer.Name .. " | Distancia: " .. math.floor(closestWorldDistance) .. "m")
+                        showTempMessage("Aimbot apuntando a: " .. closestPlayer.Name)
                         if aimbotBasicEnabled then
                             camera.CFrame = CFrame.new(camera.CFrame.Position, targetPos)
                         elseif aimbotSmoothEnabled then
@@ -671,6 +716,7 @@ local success, errorMsg = pcall(function()
             if prevBasic or prevSmooth or prevSilent then
                 soundOff:Play()
             end
+            fovCircle.Visible = false
             if aimbotConnection then
                 coroutine.yield(aimbotConnection)
                 aimbotConnection = nil
@@ -943,7 +989,7 @@ local success, errorMsg = pcall(function()
 
         local contentHeight = 0
         if tabName == "Main" then
-            addLabel(contentFrame, "Infinix Cheats v1.5", UDim2.new(0, 0, 0, 0))
+            addLabel(contentFrame, "Infinix Cheats v1.6", UDim2.new(0, 0, 0, 0))
             addLabel(contentFrame, "Creador: Zxcx", UDim2.new(0, 0, 0.1, 0))
             addLabel(contentFrame, "Desarrollador: Grok (xAI)", UDim2.new(0, 0, 0.2, 0))
             addLabel(contentFrame, "Gracias por usar Infinix Cheats!", UDim2.new(0, 0, 0.3, 0))
@@ -1015,12 +1061,22 @@ local success, errorMsg = pcall(function()
             addButton(contentFrame, "+", UDim2.new(0.35, 0, 0, 30), UDim2.new(0.1, 0, 0.8, 0), function()
                 aimFOV = math.clamp(aimFOV + 10, 50, 200)
                 fovLabel.Text = "FOV: " .. aimFOV
+                updateFOVCircle()
             end)
             addButton(contentFrame, "-", UDim2.new(0.35, 0, 0, 30), UDim2.new(0.55, 0, 0.8, 0), function()
                 aimFOV = math.clamp(aimFOV - 10, 50, 200)
                 fovLabel.Text = "FOV: " .. aimFOV
+                updateFOVCircle()
             end)
-            contentHeight = 1.0
+
+            -- *** Nuevo: Toggle para mostrar/ocultar círculo de FOV ***
+            local fovCircleToggle = addButton(contentFrame, showFOVCircle and "Ocultar Círculo FOV" or "Mostrar Círculo FOV", UDim2.new(0.8, 0, 0, 40), UDim2.new(0.1, 0, 0.95, 0), function()
+                showFOVCircle = not showFOVCircle
+                fovCircleToggle.Text = showFOVCircle and "Ocultar Círculo FOV" or "Mostrar Círculo FOV"
+                updateFOVCircle()
+                if showFOVCircle then soundOn:Play() else soundOff:Play() end
+            end)
+            contentHeight = 1.1
         elseif tabName == "Información" then
             local espToggle = addButton(contentFrame, espEnabled and "Desactivar ESP" or "Activar ESP", UDim2.new(0.8, 0, 0, 40), UDim2.new(0.1, 0, 0, 0), function()
                 toggleESP()
