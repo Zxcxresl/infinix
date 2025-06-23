@@ -1,5 +1,5 @@
 local success, errorMsg = pcall(function()
-    print("Iniciando Infinix Cheats v1.6...")
+    print("Iniciando Infinix Cheats v1.7...")
     local player = game.Players.LocalPlayer
     local playerGui = player:WaitForChild("PlayerGui", 10)
     local userInputService = game:GetService("UserInputService")
@@ -10,6 +10,10 @@ local success, errorMsg = pcall(function()
         error("PlayerGui no encontrado")
     end
     print("PlayerGui encontrado")
+
+    -- Cachear referencias para optimización
+    local camera = game.Workspace.CurrentCamera
+    local players = game:GetService("Players")
 
     -- Crear ScreenGui
     local screenGui = Instance.new("ScreenGui")
@@ -30,9 +34,9 @@ local success, errorMsg = pcall(function()
     soundOff.Parent = screenGui
     print("Sonidos On/Off creados")
 
-    -- *** Nuevo: Círculo de FOV ***
+    -- Círculo de FOV
     local fovCircle = Instance.new("Frame")
-    fovCircle.Size = UDim2.new(0, 100, 0, 100) -- Tamaño inicial (se ajustará con aimFOV)
+    fovCircle.Size = UDim2.new(0, 100, 0, 100)
     fovCircle.Position = UDim2.new(0.5, 0, 0.5, 0)
     fovCircle.AnchorPoint = Vector2.new(0.5, 0.5)
     fovCircle.BackgroundColor3 = Color3.fromRGB(128, 128, 128) -- Plomo
@@ -42,9 +46,23 @@ local success, errorMsg = pcall(function()
     fovCircle.Visible = false
     fovCircle.Parent = screenGui
     local fovCircleCorner = Instance.new("UICorner")
-    fovCircleCorner.CornerRadius = UDim.new(0.5, 0) -- Circular
+    fovCircleCorner.CornerRadius = UDim.new(0.5, 0)
     fovCircleCorner.Parent = fovCircle
     print("FOV Circle creado")
+
+    -- *** Nuevo: Línea Roja para Aimbot ***
+    local aimLine = Instance.new("Beam")
+    aimLine.Color = ColorSequence.new(Color3.fromRGB(255, 0, 0))
+    aimLine.Width0 = 0.3
+    aimLine.Width1 = 0.3
+    aimLine.Transparency = NumberSequence.new(0)
+    aimLine.Enabled = false
+    aimLine.Parent = screenGui
+    local aimAttach0 = Instance.new("Attachment") -- Jugador
+    local aimAttach1 = Instance.new("Attachment") -- Enemigo
+    aimLine.Attachment0 = aimAttach0
+    aimLine.Attachment1 = aimAttach1
+    print("Línea Roja creada")
 
     -- Mensaje temporal
     local function showTempMessage(text)
@@ -209,7 +227,7 @@ local success, errorMsg = pcall(function()
     title.TextColor3 = Color3.fromRGB(255, 255, 255)
     title.Font = Enum.Font.SourceSansBold
     title.TextSize = 16
-    title.Text = "Infinix Cheats v1.6"
+    title.Text = "Infinix Cheats v1.7"
     title.ZIndex = 2
     title.Parent = frame
     print("Main Title creado")
@@ -632,14 +650,66 @@ local success, errorMsg = pcall(function()
     local aimFOV = 100
     local aimPart = "Head"
     local smoothness = 0.5
+    local predictionEnabled = false -- Nuevo: Predicción de movimiento
     local aimbotConnection
-    local showFOVCircle = true -- Toggle para mostrar/ocultar círculo
+    local showFOVCircle = true
+    local currentTarget = nil -- Jugador actualmente apuntado
 
     -- Actualizar tamaño del círculo de FOV
     local function updateFOVCircle()
         fovCircle.Size = UDim2.new(0, aimFOV * 2, 0, aimFOV * 2)
         fovCircle.Visible = showFOVCircle and (aimbotBasicEnabled or aimbotSmoothEnabled or aimbotSilentEnabled)
         print("FOV Circle actualizado: " .. aimFOV * 2 .. "x" .. aimFOV * 2)
+    end
+
+    -- Actualizar línea roja
+    local function updateAimLine(target)
+        if target and target.Character and target.Character:FindFirstChild(aimPart) and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            aimAttach0.Parent = player.Character.HumanoidRootPart
+            aimAttach1.Parent = target.Character[aimPart]
+            aimLine.Enabled = true
+        else
+            aimLine.Enabled = false
+            aimAttach0.Parent = nil
+            aimAttach1.Parent = nil
+        end
+    end
+
+    -- Seleccionar el mejor objetivo
+    local function getBestTarget()
+        if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then return nil end
+        local mousePos = userInputService:GetMouseLocation()
+        local closestPlayer = nil
+        local closestWorldDistance = math.huge
+
+        for _, plr in ipairs(players:GetPlayers()) do
+            if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") and 
+               plr.Character:FindFirstChild(aimPart) and plr.Character:FindFirstChild("Humanoid") and 
+               plr.Character.Humanoid.Health > 0 then
+                local targetPart = plr.Character[aimPart]
+                local screenPoint, onScreen = camera:WorldToScreenPoint(targetPart.Position)
+                local screenDistance = (Vector2.new(screenPoint.X, screenPoint.Y) - mousePos).Magnitude
+                local worldDistance = (targetPart.Position - player.Character.HumanoidRootPart.Position).Magnitude
+
+                if onScreen and screenDistance <= aimFOV then
+                    local raycastParams = RaycastParams.new()
+                    raycastParams.FilterDescendantsInstances = {player.Character}
+                    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+                    local rayResult = workspace:Raycast(
+                        player.Character.HumanoidRootPart.Position,
+                        (targetPart.Position - player.Character.HumanoidRootPart.Position).Unit * worldDistance,
+                        raycastParams
+                    )
+                    if not rayResult or rayResult.Instance:IsDescendantOf(plr.Character) then
+                        if worldDistance < closestWorldDistance then
+                            closestPlayer = plr
+                            closestWorldDistance = worldDistance
+                        end
+                    end
+                end
+            end
+        end
+        return closestPlayer
     end
 
     local function toggleAimbot(mode)
@@ -652,73 +722,98 @@ local success, errorMsg = pcall(function()
             aimbotBasicEnabled and "Básico Activado" or aimbotSmoothEnabled and "Suave Activado" or aimbotSilentEnabled and "Silencioso Activado" or "Desactivado"))
         showTempMessage(string.format("Aimbot: %s", 
             aimbotBasicEnabled and "Básico Activado" or aimbotSmoothEnabled and "Suave Activado" or aimbotSilentEnabled and "Silencioso Activado" or "Desactivado"))
-        updateFOVCircle() -- Actualizar círculo al cambiar estado
+        updateFOVCircle()
+
         if isActive then
             if not (prevBasic or prevSmooth or prevSilent) then
                 soundOn:Play()
             end
-            aimbotConnection = coroutine.wrap(function()
-                while aimbotBasicEnabled or aimbotSmoothEnabled or aimbotSilentEnabled do
-                    if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
-                        break
-                    end
-                    local camera = game.Workspace.CurrentCamera
-                    local closestPlayer = nil
-                    local closestWorldDistance = math.huge
-                    local mousePos = userInputService:GetMouseLocation()
-                    for _, plr in ipairs(game.Players:GetPlayers()) do
-                        if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") and plr.Character:FindFirstChild(aimPart) then
-                            local targetPart = plr.Character[aimPart]
-                            local screenPoint, onScreen = camera:WorldToScreenPoint(targetPart.Position)
-                            local screenDistance = (Vector2.new(screenPoint.X, screenPoint.Y) - mousePos).Magnitude
-                            local worldDistance = (targetPart.Position - player.Character.HumanoidRootPart.Position).Magnitude
-                            -- Verificar si está dentro del círculo de FOV
-                            if onScreen and screenDistance <= aimFOV then
-                                -- Priorizar por distancia en el mundo 3D
-                                if worldDistance < closestWorldDistance then
-                                    -- Opcional: Verificar línea de visión con raycasting
-                                    local raycastParams = RaycastParams.new()
-                                    raycastParams.FilterDescendantsInstances = {player.Character}
-                                    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
-                                    local rayResult = workspace:Raycast(
-                                        player.Character.HumanoidRootPart.Position,
-                                        (targetPart.Position - player.Character.HumanoidRootPart.Position).Unit * worldDistance,
-                                        raycastParams
-                                    )
-                                    if not rayResult or rayResult.Instance:IsDescendantOf(plr.Character) then
-                                        closestPlayer = plr
-                                        closestWorldDistance = worldDistance
-                                    end
-                                end
-                            end
-                        end
-                    end
-                    if closestPlayer then
-                        local targetPos = closestPlayer.Character[aimPart].Position
-                        print("Aimbot apuntando a: " .. closestPlayer.Name .. " | Distancia: " .. math.floor(closestWorldDistance) .. "m")
-                        showTempMessage("Aimbot apuntando a: " .. closestPlayer.Name)
-                        if aimbotBasicEnabled then
-                            camera.CFrame = CFrame.new(camera.CFrame.Position, targetPos)
-                        elseif aimbotSmoothEnabled then
-                            local currentLook = camera.CFrame.LookVector
-                            local targetLook = (targetPos - camera.CFrame.Position).Unit
-                            local newLook = currentLook:Lerp(targetLook, smoothness)
-                            camera.CFrame = CFrame.new(camera.CFrame.Position, camera.CFrame.Position + newLook)
-                        elseif aimbotSilentEnabled then
-                            print("Aimbot Silencioso activo en " .. closestPlayer.Name)
-                            showTempMessage("Aimbot Silencioso activo en " .. closestPlayer.Name)
-                        end
-                    end
-                    runService.Heartbeat:Wait()
+            if aimbotConnection then
+                aimbotConnection:Disconnect()
+            end
+            aimbotConnection = runService.RenderStepped:Connect(function()
+                if not (aimbotBasicEnabled or aimbotSmoothEnabled or aimbotSilentEnabled) then return end
+                if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
+                    currentTarget = nil
+                    updateAimLine(nil)
+                    return
                 end
-            end)()
+
+                -- Verificar si el objetivo actual es válido
+                if currentTarget and currentTarget.Character and currentTarget.Character:FindFirstChild("Humanoid") and 
+                   currentTarget.Character.Humanoid.Health > 0 and currentTarget.Character:FindFirstChild(aimPart) then
+                    local targetPart = currentTarget.Character[aimPart]
+                    local screenPoint, onScreen = camera:WorldToScreenPoint(targetPart.Position)
+                    local screenDistance = (Vector2.new(screenPoint.X, screenPoint.Y) - userInputService:GetMouseLocation()).Magnitude
+                    local worldDistance = (targetPart.Position - player.Character.HumanoidRootPart.Position).Magnitude
+                    local raycastParams = RaycastParams.new()
+                    raycastParams.FilterDescendantsInstances = {player.Character}
+                    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+                    local rayResult = workspace:Raycast(
+                        player.Character.HumanoidRootPart.Position,
+                        (targetPart.Position - player.Character.HumanoidRootPart.Position).Unit * worldDistance,
+                        raycastParams
+                    )
+                    if not onScreen or screenDistance > aimFOV or (rayResult and not rayResult.Instance:IsDescendantOf(currentTarget.Character)) then
+                        currentTarget = nil
+                    end
+                else
+                    currentTarget = nil
+                end
+
+                -- Buscar nuevo objetivo si no hay uno válido
+                if not currentTarget then
+                    currentTarget = getBestTarget()
+                    if currentTarget then
+                        print("Nuevo objetivo: " .. currentTarget.Name)
+                        -- Conectar evento de muerte
+                        local humanoid = currentTarget.Character:FindFirstChild("Humanoid")
+                        if humanoid then
+                            humanoid.Died:Connect(function()
+                                if currentTarget == players:GetPlayerFromCharacter(humanoid.Parent) then
+                                    currentTarget = nil
+                                    updateAimLine(nil)
+                                    print("Objetivo murió: " .. humanoid.Parent.Name)
+                                end
+                            end)
+                        end
+                    end
+                end
+
+                -- Actualizar aimbot
+                if currentTarget and currentTarget.Character and currentTarget.Character:FindFirstChild(aimPart) then
+                    local targetPos = currentTarget.Character[aimPart].Position
+                    if predictionEnabled then
+                        local velocity = currentTarget.Character.HumanoidRootPart.Velocity
+                        local ping = game:GetService("Stats").Network.ServerStatsItem["Ping"]:GetValue() / 1000
+                        targetPos = targetPos + velocity * (ping + 0.1) -- Predicción simple
+                    end
+                    updateAimLine(currentTarget)
+
+                    if aimbotBasicEnabled then
+                        camera.CFrame = CFrame.new(camera.CFrame.Position, targetPos)
+                    elseif aimbotSmoothEnabled then
+                        local currentLook = camera.CFrame.LookVector
+                        local targetLook = (targetPos - camera.CFrame.Position).Unit
+                        local newLook = currentLook:Lerp(targetLook, smoothness)
+                        camera.CFrame = CFrame.new(camera.CFrame.Position, camera.CFrame.Position + newLook)
+                    elseif aimbotSilentEnabled then
+                        -- Silent Aim (Placeholder: Ajustar trayectoria de disparos)
+                        print("Aimbot Silencioso apuntando a: " .. currentTarget.Name)
+                    end
+                else
+                    updateAimLine(nil)
+                end
+            end)
         else
             if prevBasic or prevSmooth or prevSilent then
                 soundOff:Play()
             end
             fovCircle.Visible = false
+            aimLine.Enabled = false
+            currentTarget = nil
             if aimbotConnection then
-                coroutine.yield(aimbotConnection)
+                aimbotConnection:Disconnect()
                 aimbotConnection = nil
             end
         end
@@ -989,7 +1084,7 @@ local success, errorMsg = pcall(function()
 
         local contentHeight = 0
         if tabName == "Main" then
-            addLabel(contentFrame, "Infinix Cheats v1.6", UDim2.new(0, 0, 0, 0))
+            addLabel(contentFrame, "Infinix Cheats v1.7", UDim2.new(0, 0, 0, 0))
             addLabel(contentFrame, "Creador: Zxcx", UDim2.new(0, 0, 0.1, 0))
             addLabel(contentFrame, "Desarrollador: Grok (xAI)", UDim2.new(0, 0, 0.2, 0))
             addLabel(contentFrame, "Gracias por usar Infinix Cheats!", UDim2.new(0, 0, 0.3, 0))
@@ -1069,14 +1164,21 @@ local success, errorMsg = pcall(function()
                 updateFOVCircle()
             end)
 
-            -- *** Nuevo: Toggle para mostrar/ocultar círculo de FOV ***
             local fovCircleToggle = addButton(contentFrame, showFOVCircle and "Ocultar Círculo FOV" or "Mostrar Círculo FOV", UDim2.new(0.8, 0, 0, 40), UDim2.new(0.1, 0, 0.95, 0), function()
                 showFOVCircle = not showFOVCircle
                 fovCircleToggle.Text = showFOVCircle and "Ocultar Círculo FOV" or "Mostrar Círculo FOV"
                 updateFOVCircle()
                 if showFOVCircle then soundOn:Play() else soundOff:Play() end
             end)
-            contentHeight = 1.1
+
+            -- *** Nuevo: Toggle para Predicción de Movimiento ***
+            local predictionToggle = addButton(contentFrame, predictionEnabled and "Desactivar Predicción" or "Activar Predicción", UDim2.new(0.8, 0, 0, 40), UDim2.new(0.1, 0, 1.1, 0), function()
+                predictionEnabled = not predictionEnabled
+                predictionToggle.Text = predictionEnabled and "Desactivar Predicción" or "Activar Predicción"
+                if predictionEnabled then soundOn:Play() else soundOff:Play() end
+                print("Predicción de Movimiento: " .. (predictionEnabled and "Activada" or "Desactivada"))
+            end)
+            contentHeight = 1.3
         elseif tabName == "Información" then
             local espToggle = addButton(contentFrame, espEnabled and "Desactivar ESP" or "Activar ESP", UDim2.new(0.8, 0, 0, 40), UDim2.new(0.1, 0, 0, 0), function()
                 toggleESP()
@@ -1202,114 +1304,90 @@ local success, errorMsg = pcall(function()
             showTempMessage("Menú restaurado")
         end
     end
-
-    local function toggleMenu()
+local function toggleMenu()
         frame.Visible = not frame.Visible
-        print(frame.Visible and "Menú abierto" or "Menú cerrado")
-        showTempMessage(frame.Visible and "Menú abierto" or "Menú cerrado")
-        if isMinimized and frame.Visible then
-            toggleMinimize()
+        if frame.Visible then
+            print("Menú abierto")
+            showTempMessage("Menú abierto")
+            if currentTab then
+                createTabContent(currentTab)
+            end
+        else
+            print("Menú cerrado")
+            showTempMessage("Menú cerrado")
         end
     end
 
-    -- Redimensionar Menú
-    local isResizing = false
-    local lastPos = nil
+    -- Conectar eventos de botones
+    toggleButton.Activated:Connect(toggleMenu)
+    closeButton.Activated:Connect(function()
+        print("Cerrando Infinix Cheats...")
+        showTempMessage("Cerrando Infinix Cheats...")
+        screenGui:Destroy()
+        if espConnection then espConnection:Disconnect() end
+        if flyConnection then flyConnection:Disconnect() end
+        if aimbotConnection then aimbotConnection:Disconnect() end
+        if noClipConnection then noClipConnection:Disconnect() end
+        if jumpConnection then jumpConnection:Disconnect() end
+        if autoFarmConnection then autoFarmConnection:Disconnect() end
+    end)
+    minimizeButton.Activated:Connect(toggleMinimize)
+
+    -- Resize Logic
+    local resizing = false
+    local lastMousePos = Vector2.new(0, 0)
     resizeHandle.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            isResizing = true
-            lastPos = input.Position
+            resizing = true
+            lastMousePos = input.Position
         end
     end)
-
-    resizeHandle.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            isResizing = false
-            lastPos = nil
-        end
-    end)
-
     userInputService.InputChanged:Connect(function(input)
-        if isResizing and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            local delta = input.Position - lastPos
-            local newWidth = math.clamp(frame.Size.X.Offset + delta.X, 200, 500)
-            local newHeight = math.clamp(frame.Size.Y.Offset + delta.Y, 200, 500)
-            frame.Size = UDim2.new(0, newWidth, 0, newHeight)
-            resizeHandle.Position = UDim2.new(1, -20, 1, -20)
-            lastPos = input.Position
-            print("Menú redimensionado: " .. newWidth .. "x" .. newHeight)
+        if resizing and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = Vector2.new(input.Position.X, input.Position.Y) - lastMousePos
+            frame.Size = UDim2.new(0, math.clamp(frame.Size.X.Offset + delta.X, 200, 600), 0, math.clamp(frame.Size.Y.Offset + delta.Y, 150, 500))
+            lastMousePos = input.Position
+        end
+    end)
+    userInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            resizing = false
         end
     end)
 
-    closeButton.Activated:Connect(function()
-        print("Botón Cerrar clickeado")
-        if espConnection then espConnection:Disconnect() end
-        if flyEnabled then stopFly() end
-        if noClipConnection then toggleNoClip() end
-        if jumpConnection then toggleInfiniteJump() end
-        if autoFarmConnection then toggleAutoFarm() end
-        if aimbotConnection then toggleAimbot("") end
-        screenGui:Destroy()
-    end)
-
-    minimizeButton.Activated:Connect(function()
-        print("Botón Minimizar clickeado")
-        toggleMinimize()
-    end)
-
-    toggleButton.Activated:Connect(function()
-        print("Botón de toggle clickeado")
-        toggleMenu()
-    end)
-
-    userInputService.InputBegan:Connect(function(input, gameProcessed)
-        if gameProcessed then return end
-        if input.KeyCode == Enum.KeyCode.E then
-            print("Tecla E presionada")
-            toggleMenu()
-        end
-    end)
-
-    game.Players.PlayerAdded:Connect(function(plr)
-        if espEnabled and plr ~= player then
-            plr.CharacterAdded:Connect(function(character)
-                if espEnabled then
-                    applyESP(character)
-                end
-            end)
-        end
-    end)
-
-    game.Players.PlayerRemoving:Connect(function(plr)
-        if espObjects[plr.Character] then
-            for _, obj in pairs(espObjects[plr.Character]) do
-                obj:Destroy()
-            end
-            espObjects[plr.Character] = nil
-        end
-    end)
-
-    createTabContent("Main")
+    -- Inicializar pestaña por defecto
     tabButtons["Main"].BackgroundColor3 = Color3.fromRGB(40, 40, 70)
     currentTab = "Main"
-    print("Infinix Cheats inicializado")
+    createTabContent("Main")
+    print("Pestaña Main inicializada")
+
+    -- Conectar CharacterAdded para actualizar referencias
+    player.CharacterAdded:Connect(function(character)
+        print("Nuevo personaje detectado para " .. player.Name)
+        if flyEnabled then
+            stopFly()
+            startFly()
+        end
+        if espEnabled then
+            refreshESP()
+        end
+        if noClipEnabled then
+            toggleNoClip()
+            toggleNoClip()
+        end
+    end)
+
+    -- Actualizar cámara y referencias
+    game.Workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
+        camera = game.Workspace.CurrentCamera
+        print("Cámara actualizada")
+    end)
+
+    -- Mostrar mensaje de carga completa
+    showTempMessage("Infinix Cheats v1.7 cargado exitosamente!")
+    print("Infinix Cheats v1.7 cargado exitosamente!")
 end)
 
 if not success then
-    print("Error en Infinix Cheats: " .. tostring(errorMsg))
-    local player = game.Players.LocalPlayer
-    local playerGui = player:FindFirstChild("PlayerGui")
-    if playerGui then
-        local screenGui = Instance.new("ScreenGui")
-        screenGui.Name = "ErrorGui"
-        screenGui.Parent = playerGui
-        local errorLabel = Instance.new("TextLabel")
-        errorLabel.Size = UDim2.new(1, 0, 0, 50)
-        errorLabel.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-        errorLabel.BackgroundTransparency = 0.5
-        errorLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-        errorLabel.Text = "Error: " .. tostring(errorMsg)
-        errorLabel.TextWrapped = true
-        errorLabel.Parent = screenGui
-    end
+    warn("Error al cargar Infinix Cheats: " .. errorMsg)
 end
