@@ -1,5 +1,5 @@
 local success, errorMsg = pcall(function()
-    print("Iniciando Infinix Cheats v1.3...")
+    print("Iniciando Infinix Cheats v1.4...")
     local player = game.Players.LocalPlayer
     local playerGui = player:WaitForChild("PlayerGui", 10)
     local userInputService = game:GetService("UserInputService")
@@ -130,42 +130,6 @@ local success, errorMsg = pcall(function()
     welcomeLabel.Parent = welcomeFrame
     print("Welcome Label creado")
 
-    -- Verificación de Clave
-    local correctKey = "infinix"
-    submitButton.Activated:Connect(function()
-        print("Botón Enviar clickeado")
-        if string.lower(keyInput.Text) == correctKey then
-            debugLabel.Text = "Clave correcta, cargando..."
-            print("Clave correcta")
-            local fadeOutTween = tweenService:Create(keyFrame, tweenInfo, {BackgroundTransparency = 1, Size = UDim2.new(0, 0, 0, 0)})
-            fadeOutTween:Play()
-            fadeOutTween.Completed:Wait()
-            keyFrame.Visible = false
-            print("Key Frame ocultado")
-
-            -- Animación de Bienvenida
-            welcomeFrame.Visible = true
-            local fullText = "Bienvenido a Infinix Cheats"
-            local currentText = ""
-            for i = 1, #fullText do
-                currentText = currentText .. fullText:sub(i, i)
-                welcomeLabel.Text = currentText
-                wait(0.05)
-            end
-            print("Animación de bienvenida completada")
-            wait(2)
-            local welcomeFadeOut = tweenService:Create(welcomeFrame, tweenInfo, {BackgroundTransparency = 1})
-            welcomeFadeOut:Play()
-            welcomeFadeOut.Completed:Wait()
-            welcomeFrame:Destroy()
-            print("Welcome Frame destruido")
-            debugLabel.Text = "Infinix Cheats cargado. Toca ☰ para abrir."
-        else
-            errorLabel.Text = "Clave incorrecta. Intenta de nuevo."
-            print("Clave incorrecta")
-        end
-    end)
-
     -- Crear Botón Flotante para Togglear
     local toggleButton = Instance.new("TextButton")
     toggleButton.Size = UDim2.new(0, 50, 0, 50)
@@ -206,7 +170,7 @@ local success, errorMsg = pcall(function()
     title.TextColor3 = Color3.fromRGB(255, 255, 255)
     title.Font = Enum.Font.SourceSansBold
     title.TextSize = 16
-    title.Text = "Infinix Cheats v1.3"
+    title.Text = "Infinix Cheats v1.4"
     title.ZIndex = 2
     title.Parent = frame
     print("Main Title creado")
@@ -249,13 +213,16 @@ local success, errorMsg = pcall(function()
     tabFrame.Parent = frame
     print("Tab Frame creado")
 
-    local contentFrame = Instance.new("Frame")
+    local contentFrame = Instance.new("ScrollingFrame")
     contentFrame.Size = UDim2.new(1, 0, 0, 280)
     contentFrame.Position = UDim2.new(0, 0, 0, 70)
     contentFrame.BackgroundTransparency = 1
     contentFrame.ZIndex = 2
+    contentFrame.CanvasSize = UDim2.new(0, 0, 2, 0)
+    contentFrame.ScrollingDirection = Enum.ScrollingDirection.Y
+    contentFrame.ScrollBarThickness = 6
     contentFrame.Parent = frame
-    print("Content Frame creado")
+    print("Content ScrollingFrame creado")
 
     -- Boost Window
     local boostFrame = Instance.new("Frame")
@@ -305,6 +272,42 @@ local success, errorMsg = pcall(function()
         tabButtons[tabName] = tabButton
         print("Tab Button " .. tabName .. " creado")
     end
+
+    -- Verificación de Clave
+    local correctKey = "infinix"
+    submitButton.Activated:Connect(function()
+        print("Botón Enviar clickeado")
+        if string.lower(keyInput.Text) == correctKey then
+            debugLabel.Text = "Clave correcta, cargando..."
+            print("Clave correcta")
+            local fadeOutTween = tweenService:Create(keyFrame, tweenInfo, {BackgroundTransparency = 1, Size = UDim2.new(0, 0, 0, 0)})
+            fadeOutTween:Play()
+            fadeOutTween.Completed:Wait()
+            keyFrame.Visible = false
+            print("Key Frame ocultado")
+
+            -- Animación de Bienvenida
+            welcomeFrame.Visible = true
+            local fullText = "Bienvenido a Infinix Cheats"
+            local currentText = ""
+            for i = 1, #fullText do
+                currentText = currentText .. fullText:sub(i, i)
+                welcomeLabel.Text = currentText
+                wait(0.05)
+            end
+            print("Animación de bienvenida completada")
+            wait(2)
+            local welcomeFadeOut = tweenService:Create(welcomeFrame, tweenInfo, {BackgroundTransparency = 1})
+            welcomeFadeOut:Play()
+            welcomeFadeOut.Completed:Wait()
+            welcomeFrame:Destroy()
+            print("Welcome Frame destruido")
+            debugLabel.Text = "Infinix Cheats cargado. Toca ☰ para abrir."
+        else
+            errorLabel.Text = "Clave incorrecta. Intenta de nuevo."
+            print("Clave incorrecta")
+        end
+    end)
 
     -- Funcionalidades
     -- ESP Logic
@@ -471,6 +474,7 @@ local success, errorMsg = pcall(function()
     local flyConnection
     local bodyVelocity
     local bodyGyro
+    local flyControlsFrame
 
     local function startFly()
         if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
@@ -488,30 +492,11 @@ local success, errorMsg = pcall(function()
         bodyGyro.CFrame = rootPart.CFrame
         bodyGyro.Parent = rootPart
 
+        flyControlsFrame.Visible = true
         flyConnection = runService.RenderStepped:Connect(function()
             if not flyEnabled then return end
             local moveDirection = Vector3.new(0, 0, 0)
-            if userInputService:IsKeyDown(Enum.KeyCode.W) then
-                moveDirection = moveDirection + Vector3.new(0, 0, -1)
-            end
-            if userInputService:IsKeyDown(Enum.KeyCode.S) then
-                moveDirection = moveDirection + Vector3.new(0, 0, 1)
-            end
-            if userInputService:IsKeyDown(Enum.KeyCode.A) then
-                moveDirection = moveDirection + Vector3.new(-1, 0, 0)
-            end
-            if userInputService:IsKeyDown(Enum.KeyCode.D) then
-                moveDirection = moveDirection + Vector3.new(1, 0, 0)
-            end
-            if userInputService:IsKeyDown(Enum.KeyCode.Space) then
-                moveDirection = moveDirection + Vector3.new(0, 1, 0)
-            end
-            if userInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
-                moveDirection = moveDirection + Vector3.new(0, -1, 0)
-            end
-            if moveDirection.Magnitude > 0 then
-                moveDirection = moveDirection.Unit * flySpeed
-            end
+            -- Actualizar lógica de Fly para controles en pantalla (se define en createTabContent)
             bodyVelocity.Velocity = rootPart.CFrame:VectorToWorldSpace(moveDirection)
             bodyGyro.CFrame = game.Workspace.CurrentCamera.CFrame
         end)
@@ -531,6 +516,9 @@ local success, errorMsg = pcall(function()
         if flyConnection then
             flyConnection:Disconnect()
             flyConnection = nil
+        end
+        if flyControlsFrame then
+            flyControlsFrame.Visible = false
         end
         debugLabel.Text = "Fly detenido"
         print("Fly detenido")
@@ -553,8 +541,8 @@ local success, errorMsg = pcall(function()
         if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
             local rootPart = player.Character.HumanoidRootPart
             rootPart.CFrame = rootPart.CFrame + Vector3.new(0, direction * upDownDistance, 0)
-            debugLabel.Text = direction > 0 and "Subiendo" or "Bajando"
-            print(direction > 0 and "Subiendo" or "Bajando")
+            debugLabel.Text = direction > 0 and "Subiendo..." or "Bajando..."
+            print(direction > 0 and "Subiendo..." or "Bajando...")
         else
             debugLabel.Text = "Personaje no disponible"
             print("Personaje no disponible")
@@ -580,7 +568,7 @@ local success, errorMsg = pcall(function()
         debugLabel.Text = "Boost activado"
         print("Boost activado")
         local originalSpeed = walkSpeed
-        updateSpeed(walkSpeed + 50)
+        updateSpeed(walkSpeed + 51)
         wait(1)
         updateSpeed(originalSpeed)
         debugLabel.Text = "Boost terminado"
@@ -796,10 +784,79 @@ local success, errorMsg = pcall(function()
         print("Enviando mensaje como " .. spoofedPlayer.Name)
     end
 
+    -- Fly Controls Frame
+    flyControlsFrame = Instance.new("Frame")
+    flyControlsFrame.Size = UDim2.new(0, 200, 0, 200)
+    flyControlsFrame.Position = UDim2.new(0, 10, 0.5, -100)
+    flyControlsFrame.BackgroundTransparency = 1
+    flyControlsFrame.ZIndex = 1000
+    flyControlsFrame.Visible = false
+    flyControlsFrame.Parent = screenGui
+    print("Fly Controls Frame creado")
+
+    local flyMoveDirection = Vector3.new(0, 0, 0)
+    local function addFlyButton(text, size, pos, direction)
+        local button = Instance.new("TextButton")
+        button.Size = size
+        button.Position = pos
+        button.BackgroundColor3 = Color3.fromRGB(50, 50, 255)
+        button.TextColor3 = Color3.fromRGB(255, 255, 255)
+        button.Font = Enum.Font.SourceSansBold
+        button.TextSize = 16
+        button.Text = text
+        button.ZIndex = 1001
+        button.Parent = flyControlsFrame
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 6)
+        corner.Parent = button
+        button.MouseButton1Down:Connect(function()
+            flyMoveDirection = flyMoveDirection + direction
+        end)
+        button.MouseButton1Up:Connect(function()
+            flyMoveDirection = flyMoveDirection - direction
+        end)
+        button.TouchTap:Connect(function()
+            flyMoveDirection = flyMoveDirection + direction
+            wait(0.1)
+            flyMoveDirection = flyMoveDirection - direction
+        end)
+        print("Fly Button " .. text .. " creado")
+        return button
+    end
+
+    addFlyButton("↑", UDim2.new(0, 60, 0, 60), UDim2.new(0.35, 0, 0, 0), Vector3.new(0, 1, 0))
+    addFlyButton("↓", UDim2.new(0, 60, 0, 60), UDim2.new(0.35, 0, 0.7, 0), Vector3.new(0, -1, 0))
+    addFlyButton("W", UDim2.new(0, 60, 0, 60), UDim2.new(0.35, 0, 0.35, 0), Vector3.new(0, 0, -1))
+    addFlyButton("S", UDim2.new(0, 60, 0, 60), UDim2.new(0.35, 0, 0.35, 0), Vector3.new(0, 0, 1))
+    addFlyButton("A", UDim2.new(0, 60, 0, 60), UDim2.new(0, 0, 0.35, 0), Vector3.new(-1, 0, 0))
+    addFlyButton("D", UDim2.new(0, 60, 0, 60), UDim2.new(0.7, 0, 0.35, 0), Vector3.new(1, 0, 0))
+
+    -- Actualizar Fly
+    local function updateFlyDirection()
+        if flyEnabled and bodyVelocity and flyMoveDirection.Magnitude > 0 then
+            bodyVelocity.Velocity = player.Character.HumanoidRootPart.CFrame:VectorToWorldSpace(flyMoveDirection.Unit * flySpeed)
+        elseif bodyVelocity then
+            bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+        end
+    end
+
+    -- Conectar Fly
+    if flyConnection then
+        flyConnection:Disconnect()
+    end
+    flyConnection = runService.RenderStepped:Connect(function()
+        if flyEnabled then
+            updateFlyDirection()
+        end
+    end)
+
     local function createTabContent(tabName)
         for _, child in ipairs(contentFrame:GetChildren()) do
-            child:Destroy()
+            if child:IsA("GuiObject") then
+                child:Destroy()
+            end
         end
+        contentFrame.CanvasPosition = Vector2.new(0, 0)
         debugLabel.Text = "Pestaña " .. tabName .. " seleccionada"
         print("Pestaña " .. tabName .. " seleccionada")
         local function addButton(parent, text, size, y, callback, z)
@@ -817,6 +874,7 @@ local success, errorMsg = pcall(function()
             corner.CornerRadius = UDim.new(0, 6)
             corner.Parent = button
             button.Activated:Connect(callback)
+            print("Button " .. text .. " creado en y=" .. y)
             return button
         end
 
@@ -829,54 +887,56 @@ local success, errorMsg = pcall(function()
             label.Font = Enum.Font.SourceSans
             label.TextSize = 14
             label.Text = text
-            label.ZIndex = 2
+            label.ZIndex = 3
             label.Parent = parent
+            print("Label " .. text .. " creado en y=" .. y)
             return label
         end
 
         if tabName == "Main" then
-            addLabel(contentFrame, "Infinix Cheats v1.3", 0)
+            addLabel(contentFrame, "Infinix Cheats v1.4", 0)
             addLabel(contentFrame, "Creador: Zxcx", 0.1)
             addLabel(contentFrame, "Desarrollador: Grok (xAI)", 0.2)
             addLabel(contentFrame, "Gracias por usar Infinix Cheats!", 0.3)
         elseif tabName == "Básico" then
             boostFrame.Visible = true
-            local flyToggle = addButton(contentFrame, flyEnabled and "Desactivar Fly" or "Activar Fly", UDim2.new(0.8, 0, 0, 40), 0, function()
+            local flyToggle = addButton(contentFrame, flyEnabled and "Desactivar Fly" or "Activar Fly", UDim2.new(0.8, 0, 0, 0, 40), function()
                 toggleFly()
                 flyToggle.Text = flyEnabled and "Desactivar Fly" or "Activar Fly"
             end)
 
             local flySpeedLabel = addLabel(contentFrame, "Velocidad de Fly: " .. flySpeed, 0.15)
-            addButton(contentFrame, "+", UDim2.new(0.35, 0, 0, 30), 0.25, function()
+            local flySpeedPlus = addButton(contentFrame, "+", UDim2.new(0.35, 0, 0, 30), 0.25, function()
                 flySpeed = math.clamp(flySpeed + 10, 10, 200)
                 flySpeedLabel.Text = "Velocidad de Fly: " .. flySpeed
             end)
-            addButton(contentFrame, "-", UDim2.new(0.35, 0, 0, 30), 0.25, function()
+            local flySpeedMinus = addButton(contentFrame, "-", UDim2.new(0.55, 0, 0, 30), 0.25, function()
                 flySpeed = math.clamp(flySpeed - 10, 10, 200)
                 flySpeedLabel.Text = "Velocidad de Fly: " .. flySpeed
-            end, 4)
+            end)
 
             local upDownLabel = addLabel(contentFrame, "Distancia Up/Down: " .. upDownDistance, 0.4)
-            addButton(contentFrame, "Subir", UDim2.new(0.35, 0, 0, 40), 0.5, function() moveVertical(1) end)
-            addButton(contentFrame, "Bajar", UDim2.new(0.35, 0, 0, 40), 0.5, function() moveVertical(-1) end, 4)
-            addButton(contentFrame, "+", UDim2.new(0.35, 0, 0, 30), 0.65, function()
-                upDownDistance = math.clamp(upDownDistance + 10, 10, 100)
+            local upButton = addButton(contentFrame, "Subir", UDim2.new(0.35, 0, 0, 40), 0.5, function() moveVertical(1) end)
+            local downButton = addButton(contentFrame, "Bajar", UDim2.new(0.55, 0, 0, 40), 0.5, function() moveVertical(-1) end)
+            local upDownPlus = addButton(contentFrame, "+", UDim2.new(0.35, 0, 0, 30), 0.65, function()
+                upDownDistance = math.clamp(upDownDistance + 10, 5, 100)
                 upDownLabel.Text = "Distancia Up/Down: " .. upDownDistance
             end)
-            addButton(contentFrame, "-", UDim2.new(0.35, 0, 0, 30), 0.65, function()
-                upDownDistance = math.clamp(upDownDistance - 10, 10, 100)
+            local upDownMinus = addButton(contentFrame, "-", UDim2.new(0.55, 0, 0, 30), 0.65, function()
+                upDownDistance = math.clamp(upDownDistance - 10, 5, 100)
                 upDownLabel.Text = "Distancia Up/Down: " .. upDownDistance
-            end, 4)
+            end)
 
             local speedLabel = addLabel(contentFrame, "Velocidad: " .. walkSpeed, 0.8)
-            addButton(contentFrame, "+", UDim2.new(0.35, 0, 0, 30), 0.9, function()
+            local speedPlus = addButton(contentFrame, "+", UDim2.new(0.35, 0, 0, 30), 0.9, function()
                 updateSpeed(walkSpeed + 10)
                 speedLabel.Text = "Velocidad: " .. walkSpeed
             end)
-            addButton(contentFrame, "-", UDim2.new(0.35, 0, 0, 30), 0.9, function()
+            local speedMinus = addButton(contentFrame, "-", UDim2.new(0.55, 0, 0, 30), 0.9, function()
                 updateSpeed(walkSpeed - 10)
                 speedLabel.Text = "Velocidad: " .. walkSpeed
-            end, 4)
+            end)
+            contentFrame.CanvasSize = UDim2.new(0, 0, 1.2, 0)
         elseif tabName == "Combate" then
             local aimbotBasicToggle = addButton(contentFrame, aimbotBasicEnabled and "Desactivar Aimbot Básico" or "Activar Aimbot Básico", UDim2.new(0.8, 0, 0, 40), 0, function()
                 toggleAimbot("basic")
@@ -896,20 +956,21 @@ local success, errorMsg = pcall(function()
                 aimPart = "Head"
                 aimPartLabel.Text = "Parte a Apuntar: " .. aimPart
             end)
-            addButton(contentFrame, "Torso", UDim2.new(0.35, 0, 0, 30), 0.55, function()
+            addButton(contentFrame, "Torso", UDim2.new(0.55, 0, 0, 30), 0.55, function()
                 aimPart = "HumanoidRootPart"
                 aimPartLabel.Text = "Parte a Apuntar: " .. aimPart
-            end, 4)
+            end)
 
             local fovLabel = addLabel(contentFrame, "FOV: " .. aimFOV, 0.7)
             addButton(contentFrame, "+", UDim2.new(0.35, 0, 0, 30), 0.8, function()
                 aimFOV = math.clamp(aimFOV + 10, 50, 200)
                 fovLabel.Text = "FOV: " .. aimFOV
             end)
-            addButton(contentFrame, "-", UDim2.new(0.35, 0, 0, 30), 0.8, function()
+            addButton(contentFrame, "-", UDim2.new(0.55, 0, 0, 30), 0.8, function()
                 aimFOV = math.clamp(aimFOV - 10, 50, 200)
                 fovLabel.Text = "FOV: " .. aimFOV
-            end, 4)
+            end)
+            contentFrame.CanvasSize = UDim2.new(0, 0, 1, 0)
         elseif tabName == "Información" then
             local espToggle = addButton(contentFrame, espEnabled and "Desactivar ESP" or "Activar ESP", UDim2.new(0.8, 0, 0, 40), 0, function()
                 toggleESP()
@@ -928,9 +989,11 @@ local success, errorMsg = pcall(function()
 
             local outlineColorLabel = addLabel(contentFrame, "Color del Borde", 0.45)
             for i, color in ipairs(colors) do
+                local x = 0.1 + ((i-1) % 4) * 0.12
+                local y = 0.55 + math.floor((i-1) / 4) * 0.15
                 local button = Instance.new("TextButton")
                 button.Size = UDim2.new(0, 30, 0, 30)
-                button.Position = UDim2.new(0.1 + (i-1) * 0.15, 0, 0.55, 0)
+                button.Position = UDim2.new(x, 0, y, 0)
                 button.BackgroundColor3 = color
                 button.Text = ""
                 button.ZIndex = 3
@@ -942,18 +1005,21 @@ local success, errorMsg = pcall(function()
                     outlineColor = color
                     updateChams()
                 end)
+                print("Outline Color Button " .. i .. " creado en x=" .. x .. ", y=" .. y)
             end
 
-            local fillToggle = addButton(contentFrame, fillEnabled and "Relleno: On" or "Relleno: Off", UDim2.new(0.2, 0, 0, 30), 0.7, function()
+            local fillToggle = addButton(contentFrame, fillEnabled and "Relleno: On" or "Relleno: Off", UDim2.new(0.2, 0, 0, 30), 0.85, function()
                 fillEnabled = not fillEnabled
                 fillToggle.Text = fillEnabled and "Relleno: On" or "Relleno: Off"
                 updateChams()
             end)
-            local fillColorLabel = addLabel(contentFrame, "Color del Relleno", 0.85)
+            local fillColorLabel = addLabel(contentFrame, "Color del Relleno", 1.0)
             for i, color in ipairs(colors) do
+                local x = 0.1 + ((i-1) % 4) * 0.12
+                local y = 1.1 + math.floor((i-1) / 4) * 0.15
                 local button = Instance.new("TextButton")
                 button.Size = UDim2.new(0, 30, 0, 30)
-                button.Position = UDim2.new(0.1 + (i-1) * 0.15, 0, 0.95, 0)
+                button.Position = UDim2.new(x, 0, y, 0)
                 button.BackgroundColor3 = color
                 button.Text = ""
                 button.ZIndex = 3
@@ -965,18 +1031,20 @@ local success, errorMsg = pcall(function()
                     fillColor = color
                     updateChams()
                 end)
+                print("Fill Color Button " .. i .. " creado en x=" .. x .. ", y=" .. y)
             end
 
-            local serverInfo = addLabel(contentFrame, "Cargando info...", 1.1)
+            local serverInfo = addLabel(contentFrame, "Cargando info...", 1.4)
             spawn(function()
                 while contentFrame.Parent do
                     local health = player.Character and player.Character:FindFirstChild("Humanoid") and math.floor(player.Character.Humanoid.Health) or 0
                     local maxHealth = player.Character and player.Character:FindFirstChild("Humanoid") and math.floor(player.Character.Humanoid.MaxHealth) or 100
                     serverInfo.Text = string.format("Jugador: %s | Salud: %d/%d | Servidor: %s | Ping: %d", 
-                        player.Name, health, maxHealth, game.JobId, game:GetService("Stats").Network.ServerStatsItem["Ping"]:GetValue())
+                            player.Name, health, maxHealth, game.JobId, game:GetService("Stats").Network.ServerStatsItem["Ping"]:GetValue())
                     wait(1)
                 end
             end)
+            contentFrame.CanvasSize = UDim2.new(0, 0, 1.6, 0)
         elseif tabName == "Avanzado" then
             local noClipToggle = addButton(contentFrame, noClipEnabled and "Desactivar NoClip" or "Activar NoClip", UDim2.new(0.8, 0, 0, 40), 0, function()
                 toggleNoClip()
@@ -994,6 +1062,7 @@ local success, errorMsg = pcall(function()
                 toggleGodMode()
                 godModeToggle.Text = godModeEnabled and "Desactivar God Mode" or "Activar God Mode"
             end)
+            contentFrame.CanvasSize = UDim2.new(0, 0, 0.6, 0)
         elseif tabName == "Otros" then
             addButton(contentFrame, "Server Hop", UDim2.new(0.8, 0, 0, 40), 0, serverHop)
             addButton(contentFrame, "Rejoin", UDim2.new(0.8, 0, 0, 40), 0.15, rejoin)
@@ -1001,6 +1070,7 @@ local success, errorMsg = pcall(function()
             addButton(contentFrame, "Chat Spoofer", UDim2.new(0.8, 0, 0, 40), 0.45, function()
                 chatSpoofer("Mensaje de prueba", player)
             end)
+            contentFrame.CanvasSize = UDim2.new(0, 0, 0.6, 0)
         end
     end
 
@@ -1036,7 +1106,7 @@ local success, errorMsg = pcall(function()
                 createTabContent(currentTab)
             end
             debugLabel.Text = "Menú restaurado"
-            print("Menú restaurado")
+            print("Menú Restaurado")
         end
     end
 
@@ -1052,12 +1122,24 @@ local success, errorMsg = pcall(function()
     closeButton.Activated:Connect(function()
         debugLabel.Text = "Botón Cerrar clickeado"
         print("Botón Cerrar clickeado")
-        if espConnection then espConnection:Disconnect() end
-        if flyConnection then stopFly() end
-        if noClipConnection then toggleNoClip() end
-        if jumpConnection then toggleInfiniteJump() end
-        if autoFarmConnection then toggleAutoFarm() end
-        if aimbotConnection then toggleAimbot("") end
+        if espConnection then
+            espConnection:Disconnect()
+        end
+        if flyEnabled then
+            stopFly()
+        end
+        if noClipConnection then
+            toggleNoClip()
+        end
+        if jumpConnection then
+            toggleInfiniteJump()
+        end
+        if autoFarmConnection then
+            toggleAutoFarm()
+        end
+        if aimbotConnection then
+            toggleAimbot("")
+        end
         screenGui:Destroy()
     end)
 
